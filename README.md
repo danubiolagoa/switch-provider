@@ -1,5 +1,7 @@
 # Claude Provider Manager
 
+**Versão atual: 1.0.1**
+
 Gerencie e alterne entre múltiplos providers de LLM no **Claude Code** — MiniMax, OpenRouter, Z.AI/GLM, Anthropic e qualquer endpoint compatível com a API da Anthropic.
 
 ---

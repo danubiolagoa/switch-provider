@@ -5,6 +5,7 @@ set "CONFIG_DIR=%USERPROFILE%\.claude"
 set "SETTINGS=%CONFIG_DIR%\settings.json"
 
 if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
+call :NORMALIZE_PROVIDER_FILES
 for /f %%e in ('echo prompt $E ^| cmd') do set "ESC=%%e"
 set "GREEN="
 set "RESET="
@@ -120,6 +121,21 @@ goto :EOF
 cls
 echo.
 echo  Ativando %~2...
+set "SOURCE_FILE=%CONFIG_DIR%\%~1.json"
+powershell -NoProfile -Command ^
+"$ErrorActionPreference='Stop'; " ^
+"Get-Content -Raw -LiteralPath $env:SOURCE_FILE | ConvertFrom-Json | Out-Null" >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo ==========================================
+    echo   [ERRO] Provider invalido ou corrompido.
+    echo   Arquivo: %~1.json
+    echo   Dica: remova este provider e adicione novamente.
+    echo ==========================================
+    echo.
+    pause
+    goto :EOF
+)
 set "TMP_SETTINGS=%SETTINGS%.tmp"
 copy /Y "%CONFIG_DIR%\%~1.json" "!TMP_SETTINGS!" >nul
 move /Y "!TMP_SETTINGS!" "%SETTINGS%" >nul
@@ -228,21 +244,11 @@ if "%EP%"=="7" (
 echo.
 set /p PNAME="  Nome do provider [!DEF_NAME!]: "
 if "!PNAME!"=="" set "PNAME=!DEF_NAME!"
-set "PNAME=!PNAME:\=-!"
-set "PNAME=!PNAME:/=-!"
-set "PNAME=!PNAME::=-!"
-set "PNAME=!PNAME:*=-!"
-set "PNAME=!PNAME:?=-!"
-set "PNAME=!PNAME:<=-!"
-set "PNAME=!PNAME:>=-!"
-set "PNAME=!PNAME:|=-!"
-for /f "tokens=* delims= " %%A in ("!PNAME!") do set "PNAME=%%A"
-:TRIM_PNAME_RIGHT
-if "!PNAME:~-1!"==" " (
-    set "PNAME=!PNAME:~0,-1!"
-    goto TRIM_PNAME_RIGHT
-)
+set "PNAME_FALLBACK=!DEF_NAME!"
+if "!PNAME_FALLBACK!"=="" set "PNAME_FALLBACK=custom"
+for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$n=[string]$env:PNAME; if(-not $n){$n=[string]$env:PNAME_FALLBACK}; $n=$n.Trim(); $n=[regex]::Replace($n,'[^A-Za-z0-9._ -]','-'); $n=$n.Trim(' ','.'); if(-not $n){$n=[string]$env:PNAME_FALLBACK}; if(-not $n){$n='custom'}; [Console]::Write($n)"`) do set "PNAME=%%A"
 if "!PNAME!"=="" set "PNAME=!DEF_NAME!"
+if "!PNAME!"=="" set "PNAME=custom"
 
 echo.
 set /p APIKEY="  Cole sua API Key: "
@@ -330,6 +336,15 @@ set /p CONFIRM="  Escolha: "
 if /i "!CONFIRM!"=="n" goto MENU
 
 set "OUT=%CONFIG_DIR%\settings-!PNAME!.json"
+set "OUT_TMP=!OUT!.tmp"
+
+if exist "!OUT!" (
+    echo.
+    echo  [AVISO] Ja existe um provider com esse nome:
+    echo          !PNAME!
+    set /p OVERWRITE="  Sobrescrever? (s/n): "
+    if /i not "!OVERWRITE!"=="s" goto MENU
+)
 
 if "!NATIVE!"=="1" (
     (
@@ -340,7 +355,7 @@ if "!NATIVE!"=="1" (
         echo   },
         echo   "autoUpdatesChannel": "latest"
         echo }
-    ) > "!OUT!"
+    ) > "!OUT_TMP!"
 ) else (
     (
         echo {
@@ -358,8 +373,24 @@ if "!NATIVE!"=="1" (
         echo   },
         echo   "autoUpdatesChannel": "latest"
         echo }
-    ) > "!OUT!"
+    ) > "!OUT_TMP!"
 )
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; Get-Content -Raw -LiteralPath $env:OUT_TMP | ConvertFrom-Json | Out-Null" >nul 2>&1
+if errorlevel 1 (
+    del "!OUT_TMP!" 2>nul
+    echo.
+    echo ==========================================
+    echo   [ERRO] Falha ao salvar provider.
+    echo   O arquivo gerado ficou invalido.
+    echo   Tente novamente com outro nome/modelo.
+    echo ==========================================
+    echo.
+    pause
+    goto MENU
+)
+
+move /Y "!OUT_TMP!" "!OUT!" >nul
 
 echo.
 echo  [OK] Provider "!PNAME!" salvo!
@@ -871,3 +902,17 @@ if defined SELECTED_MODEL (
     goto :EOF
 )
 goto OPENAI_MODEL_PAGE
+
+:NORMALIZE_PROVIDER_FILES
+for %%F in ("%CONFIG_DIR%\settings-*") do (
+    if exist "%%~fF" (
+        if /i not "%%~xF"==".json" (
+            if /i not "%%~nxF"=="settings.json" (
+                if /i not "%%~nxF"=="settings.local.json" (
+                    if not exist "%%~fF.json" ren "%%~fF" "%%~nxF.json" >nul 2>&1
+                )
+            )
+        )
+    )
+)
+goto :EOF
