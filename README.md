@@ -99,7 +99,7 @@ O Claude vai listar seus providers disponíveis e guiar a alternância interativ
 | Provider | Endpoint | Notas |
 |---|---|---|
 | **MiniMax** | `https://api.minimax.io/anthropic` | Usuários internacionais |
-| **OpenRouter** | `https://openrouter.ai/api/v1` | Acesso a dezenas de modelos |
+| **OpenRouter** | `https://openrouter.ai/api` | Acesso a dezenas de modelos |
 | **Z.AI / GLM** | `https://api.z.ai/api/anthropic` | Modelos GLM da Zhipu AI |
 | **Anthropic** | *(nativo)* | Usa `ANTHROPIC_API_KEY` diretamente |
 | **Custom** | Qualquer endpoint compatível | Digite manualmente |

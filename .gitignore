@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code settings (contain API keys)
+# These should never be committed
+~/.claude/settings.json
+~/.claude/settings-*.json
+.claude/settings.json
+.claude/settings-*.json
+settings.json
+settings-*.json
+
+# Temporary files
+*.tmp
+*.bak
+
+# Hidden/unfinished files
+index.html
+
+# History (IDE)
+.history/
+
+# Scripts output (local test files)
+/scripts/*.txt
