@@ -122,15 +122,13 @@ cls
 echo.
 echo  Ativando %~2...
 set "SOURCE_FILE=%CONFIG_DIR%\%~1.json"
-powershell -NoProfile -Command ^
-"$ErrorActionPreference='Stop'; " ^
-"Get-Content -Raw -LiteralPath $env:SOURCE_FILE | ConvertFrom-Json | Out-Null" >nul 2>&1
+powershell -NoProfile -Command "$ErrorActionPreference='Stop'; Get-Content -Raw -LiteralPath $env:SOURCE_FILE | ConvertFrom-Json | Out-Null" >nul 2>&1
 if errorlevel 1 (
     echo.
     echo ==========================================
     echo   [ERRO] Provider invalido ou corrompido.
     echo   Arquivo: %~1.json
-    echo   Dica: remova este provider e adicione novamente.
+    echo   Dica: valide/corrija o JSON desse arquivo. Nao remova se quiser preservar a chave.
     echo ==========================================
     echo.
     pause
