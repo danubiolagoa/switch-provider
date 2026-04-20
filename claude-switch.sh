@@ -3,18 +3,28 @@
 CONFIG_DIR="$HOME/.claude"
 SETTINGS="$CONFIG_DIR/settings.json"
 
+MENU_TOP="╔══════════════════════════════════════════════════╗"
+MENU_MID="╠══════════════════════════════════════════════════╣"
+MENU_BOTTOM="╚══════════════════════════════════════════════════╝"
+
+menu_line() {
+    local text="$1"
+    printf "║ %-48.48s ║\n" "$text"
+}
+
 show_menu() {
     clear
     echo ""
-    echo "╔══════════════════════════════════════════════════╗"
-    echo "║        Claude Code - Provider Manager           ║"
-    echo "╠══════════════════════════════════════════════════╣"
+    echo "$MENU_TOP"
+    menu_line "       Claude Code - Provider Manager"
+    echo "$MENU_MID"
 
     local count=0
     local files=()
     local current_label=""
     local current_provider="nenhum"
     local current_model=""
+    local current_base_url=""
 
     for f in "$CONFIG_DIR"/settings-*.json; do
         [ -f "$f" ] || continue
@@ -45,33 +55,38 @@ show_menu() {
     if [ -f "$SETTINGS" ]; then
         if command -v jq >/dev/null 2>&1; then
             current_model=$(jq -r '.env.ANTHROPIC_MODEL // empty' "$SETTINGS" 2>/dev/null)
+            current_base_url=$(jq -r '.env.ANTHROPIC_BASE_URL // empty' "$SETTINGS" 2>/dev/null)
         else
             current_model=$(grep -o '"ANTHROPIC_MODEL": *"[^"]*"' "$SETTINGS" 2>/dev/null | head -1 | cut -d'"' -f4)
+            current_base_url=$(grep -o '"ANTHROPIC_BASE_URL": *"[^"]*"' "$SETTINGS" 2>/dev/null | head -1 | cut -d'"' -f4)
         fi
     fi
 
     if [ "$count" -eq 0 ]; then
-        printf "║  %-48s║\n" "Nenhum provider configurado ainda."
+        menu_line " Nenhum provider configurado ainda."
     else
         local i=1
         while [ "$i" -le "$count" ]; do
             local name="${files[$((i - 1))]}"
             if [ "$name" = "$current_label" ]; then
-                printf "║  [%s] %-34s [v] ativo ║\n" "$i" "$name"
+                menu_line " [$i] $name  [v] ativo"
             else
-                printf "║  [%s] %-44s║\n" "$i" "$name"
+                menu_line " [$i] $name"
             fi
             i=$((i + 1))
         done
     fi
 
-    echo "╠══════════════════════════════════════════════════╣"
-    echo "║  [a] Adicionar novo provider                    ║"
-    echo "║  [r] Remover provider                          ║"
-    echo "║  [n] Claude padrao (Anthropic login)          ║"
-    echo "║  [v] Ver provider atual                        ║"
-    echo "║  [0] Sair                                      ║"
-    echo "╚══════════════════════════════════════════════════╝"
+    echo "$MENU_MID"
+    menu_line " [a] Adicionar novo provider"
+    menu_line " [r] Remover provider"
+    case "$current_base_url" in
+        *openrouter.ai*) menu_line " [m] Trocar modelo OpenRouter" ;;
+    esac
+    menu_line " [n] Claude padrao (Anthropic login)"
+    menu_line " [v] Ver provider atual"
+    menu_line " [0] Sair"
+    echo "$MENU_BOTTOM"
     echo ""
     echo " Ativo: $current_provider"
     [ -n "$current_model" ] && echo " Modelo: $current_model"
@@ -84,6 +99,7 @@ show_menu() {
         0) clear; echo " Ate logo!"; echo ""; exit 0 ;;
         a) add_provider ;;
         r) remove_provider ;;
+        m) change_openrouter_model ;;
         n) use_native_anthropic ;;
         v) view_current ;;
         *)
@@ -219,10 +235,20 @@ add_provider() {
                     show_menu
                     return
                 fi
-                model_selected=$(select_openrouter_model "$api_key")
+                if select_openrouter_model "$api_key"; then
+                    model_selected="$SELECTED_MODEL"
+                fi
                 ;;
-            5) model_selected=$(select_gemini_model "$api_key") ;;
-            6) model_selected=$(select_openai_model "$api_key") ;;
+            5)
+                if select_gemini_model "$api_key"; then
+                    model_selected="$SELECTED_MODEL"
+                fi
+                ;;
+            6)
+                if select_openai_model "$api_key"; then
+                    model_selected="$SELECTED_MODEL"
+                fi
+                ;;
         esac
 
         if [ -z "$model_selected" ]; then
@@ -380,6 +406,7 @@ validate_openrouter_key() {
 
 select_openrouter_model() {
     local api_key="$1"
+    SELECTED_MODEL=""
     clear
     echo ""
     echo "╔══════════════════════════════════════════════════╗"
@@ -435,7 +462,7 @@ select_openrouter_model() {
         return 1
     fi
 
-    # Extrai modelos e salva em arquivo temporario
+    # Extrai modelos e salva em arquivo temporario.
     local tmp_file
     tmp_file=$(mktemp)
     echo "$response" | jq -r '.data[] | "\(.id)|\(.name // .id)"' 2>/dev/null > "$tmp_file"
@@ -450,6 +477,7 @@ select_openrouter_model() {
 
     local total_models=$(wc -l < "$tmp_file")
     echo "║  Encontrados $total_models modelos              ║"
+    echo "║  Aviso: modelos free podem retornar 429.        ║"
     echo "╚══════════════════════════════════════════════════╝"
     echo ""
 
@@ -489,7 +517,10 @@ select_openrouter_model() {
         echo "╚══════════════════════════════════════════════════╝"
         echo ""
         echo -n " Escolha: "
-        read -r choice
+        if ! read -r choice; then
+            rm -f "$tmp_file"
+            return 1
+        fi
 
         case "$choice" in
             0) rm -f "$tmp_file"; return 1 ;;
@@ -508,7 +539,7 @@ select_openrouter_model() {
                     local selected=$(sed -n "${choice}p" "$tmp_file")
                     local selected_id=$(echo "$selected" | cut -d'|' -f1)
                     rm -f "$tmp_file"
-                    echo "$selected_id"
+                    SELECTED_MODEL="$selected_id"
                     return 0
                 fi
                 ;;
@@ -518,6 +549,7 @@ select_openrouter_model() {
 
 select_gemini_model() {
     local api_key="$1"
+    SELECTED_MODEL=""
     clear
     echo ""
     echo "╔══════════════════════════════════════════════════╗"
@@ -614,7 +646,10 @@ select_gemini_model() {
         echo "╚══════════════════════════════════════════════════╝"
         echo ""
         echo -n " Escolha: "
-        read -r choice
+        if ! read -r choice; then
+            rm -f "$tmp_file"
+            return 1
+        fi
 
         case "$choice" in
             0) rm -f "$tmp_file"; return 1 ;;
@@ -635,7 +670,7 @@ select_gemini_model() {
                     # Remove prefixo "models/" se existir
                     selected_id=$(echo "$selected_id" | sed 's/^models\///')
                     rm -f "$tmp_file"
-                    echo "$selected_id"
+                    SELECTED_MODEL="$selected_id"
                     return 0
                 fi
                 ;;
@@ -645,6 +680,7 @@ select_gemini_model() {
 
 select_openai_model() {
     local api_key="$1"
+    SELECTED_MODEL=""
     clear
     echo ""
     echo "╔══════════════════════════════════════════════════╗"
@@ -741,7 +777,10 @@ select_openai_model() {
         echo "╚══════════════════════════════════════════════════╝"
         echo ""
         echo -n " Escolha: "
-        read -r choice
+        if ! read -r choice; then
+            rm -f "$tmp_file"
+            return 1
+        fi
 
         case "$choice" in
             0) rm -f "$tmp_file"; return 1 ;;
@@ -759,7 +798,7 @@ select_openai_model() {
                 if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "$total_models" ]; then
                     local selected_id=$(sed -n "${choice}p" "$tmp_file")
                     rm -f "$tmp_file"
-                    echo "$selected_id"
+                    SELECTED_MODEL="$selected_id"
                     return 0
                 fi
                 ;;
@@ -809,6 +848,127 @@ remove_provider() {
         fi
     fi
 
+    echo ""
+    read -rp " Pressione Enter para continuar..."
+    show_menu
+}
+
+change_openrouter_model() {
+    clear
+    echo ""
+
+    if [ ! -f "$SETTINGS" ]; then
+        echo " [ERRO] settings.json nao encontrado."
+        echo ""
+        read -rp " Pressione Enter para continuar..."
+        show_menu
+        return
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        echo " [ERRO] jq nao instalado. Necessario para atualizar o modelo."
+        echo ""
+        read -rp " Pressione Enter para continuar..."
+        show_menu
+        return
+    fi
+
+    local base_url
+    local api_key
+    local current_model
+    base_url=$(jq -r '.env.ANTHROPIC_BASE_URL // empty' "$SETTINGS" 2>/dev/null)
+    api_key=$(jq -r '.env.ANTHROPIC_AUTH_TOKEN // empty' "$SETTINGS" 2>/dev/null)
+    current_model=$(jq -r '.env.ANTHROPIC_MODEL // empty' "$SETTINGS" 2>/dev/null)
+
+    case "$base_url" in
+        *openrouter.ai*) ;;
+        *)
+            echo " [ERRO] O provider ativo nao e OpenRouter."
+            echo ""
+            read -rp " Pressione Enter para continuar..."
+            show_menu
+            return
+            ;;
+    esac
+
+    if [ -z "$api_key" ]; then
+        echo " [ERRO] API key do OpenRouter nao encontrada no settings.json."
+        echo ""
+        read -rp " Pressione Enter para continuar..."
+        show_menu
+        return
+    fi
+
+    local active_provider_file=""
+    for f in "$CONFIG_DIR"/settings-*.json; do
+        [ -f "$f" ] || continue
+        [ "$(basename "$f" .json)" = "settings-before-native-anthropic" ] && continue
+        if cmp -s "$f" "$SETTINGS"; then
+            active_provider_file="$f"
+            break
+        fi
+    done
+
+    echo " Modelo atual: ${current_model:-nao definido}"
+    echo ""
+    echo " Buscando modelos do OpenRouter..."
+
+    local model_selected=""
+    if select_openrouter_model "$api_key"; then
+        model_selected="$SELECTED_MODEL"
+    fi
+
+    if [ -z "$model_selected" ]; then
+        echo ""
+        echo " [OK] Operacao cancelada."
+        echo ""
+        read -rp " Pressione Enter para continuar..."
+        show_menu
+        return
+    fi
+
+    clear
+    echo ""
+    echo " Modelo atual: ${current_model:-nao definido}"
+    echo " Novo modelo:  $model_selected"
+    echo ""
+    echo -n " Confirmar troca? (s/n): "
+    read -r confirm
+    if ! [[ "$confirm" =~ ^[Ss]$ ]]; then
+        show_menu
+        return
+    fi
+
+    local tmp_settings
+    tmp_settings="${SETTINGS}.tmp.$$"
+    if ! jq --arg model "$model_selected" '
+        .env.ANTHROPIC_MODEL = $model |
+        .env.ANTHROPIC_SMALL_FAST_MODEL = $model |
+        .env.ANTHROPIC_DEFAULT_SONNET_MODEL = $model |
+        .env.ANTHROPIC_DEFAULT_OPUS_MODEL = $model |
+        .env.ANTHROPIC_DEFAULT_HAIKU_MODEL = $model
+    ' "$SETTINGS" > "$tmp_settings"; then
+        rm -f "$tmp_settings"
+        echo ""
+        echo " [ERRO] Falha ao atualizar settings.json."
+        echo ""
+        read -rp " Pressione Enter para continuar..."
+        show_menu
+        return
+    fi
+
+    mv "$tmp_settings" "$SETTINGS"
+    if [ -n "$active_provider_file" ]; then
+        cp "$SETTINGS" "$active_provider_file"
+    fi
+
+    echo ""
+    echo " [OK] Modelo OpenRouter atualizado."
+    if [ -n "$active_provider_file" ]; then
+        echo " [OK] Backup do provider ativo tambem foi atualizado."
+    fi
+    echo ""
+    echo " IMPORTANTE: Reinicie o Claude Code para aplicar a mudanca."
     echo ""
     read -rp " Pressione Enter para continuar..."
     show_menu

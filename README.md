@@ -1,6 +1,6 @@
 # Claude Provider Manager
 
-**Versão atual: 1.0.1**
+**Versão atual: 1.0.2**
 
 Gerencie e alterne entre múltiplos providers de LLM no **Claude Code** — MiniMax, OpenRouter, Z.AI/GLM, Anthropic e qualquer endpoint compatível com a API da Anthropic.
 
@@ -82,6 +82,7 @@ Execute `claude-switch.bat` (Windows) ou `./claude-switch.sh` (Linux/Mac) a qual
 - Alternar entre providers já configurados
 - Adicionar um novo provider
 - Remover um provider
+- Trocar o modelo ativo do OpenRouter sem recadastrar a API key
 - Ver qual provider está ativo
 
 ### Via slash command (dentro do Claude Code)
@@ -104,6 +105,8 @@ O Claude vai listar seus providers disponíveis e guiar a alternância interativ
 | **OpenRouter** | `https://openrouter.ai/api` | Acesso a dezenas de modelos |
 | **Z.AI / GLM** | `https://api.z.ai/api/anthropic` | Modelos GLM da Zhipu AI |
 | **Anthropic** | *(nativo)* | Usa `ANTHROPIC_API_KEY` diretamente |
+| **Google AI Studio** | `https://generativelanguage.googleapis.com` | Modelos Gemini |
+| **OpenAI** | `https://api.openai.com/v1` | Modelos GPT |
 | **Custom** | Qualquer endpoint compatível | Digite manualmente |
 
 ---

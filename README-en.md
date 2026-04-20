@@ -1,6 +1,6 @@
 # Claude Provider Manager
 
-**Current version: 1.0.1**
+**Current version: 1.0.2**
 
 Manage and switch between multiple LLM providers in **Claude Code** — MiniMax, OpenRouter, Z.AI/GLM, Anthropic, and any API-compatible endpoint.
 
@@ -83,6 +83,7 @@ Run `claude-switch.bat` (Windows) or `./claude-switch.sh` (Linux/Mac) anytime to
 - Switch between already configured providers
 - Add a new provider
 - Remove a provider
+- Change the active OpenRouter model without registering the API key again
 - View which provider is currently active
 
 ### Via slash command (inside Claude Code)
