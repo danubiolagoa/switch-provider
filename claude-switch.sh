@@ -86,14 +86,16 @@ show_menu() {
     echo ""
     echo -e "$SEP"
     echo -e "  ${GRAY}[a]${RESET} Adicionar novo provider"
+    echo -e "  ${GRAY}[e]${RESET} Renomear provider"
     echo -e "  ${GRAY}[r]${RESET} Remover provider"
     case "$current_base_url" in
         *openrouter.ai*) echo -e "  ${GRAY}[m]${RESET} Trocar modelo OpenRouter" ;;
+        *nvidia*) echo -e "  ${GRAY}[m]${RESET} Trocar modelo NVIDIA" ;;
     esac
     echo -e "  ${GRAY}[n]${RESET} Claude padrao (Anthropic login)"
     echo -e "  ${GRAY}[v]${RESET} Ver provider atual"
     echo -e "$SEP"
-    echo -e "  ${GRAY}[0]${RESET} ${WHITE}Sair${RESET}"
+    echo -e "  ${GRAY}[s]${RESET} ${WHITE}Sair${RESET}"
     echo ""
     if [ -n "$current_model" ]; then
         echo -e "  ${GRAY}Modelo:${RESET} ${CYAN}$current_model${RESET}"
@@ -103,10 +105,11 @@ show_menu() {
     read -r choice
 
     case "$choice" in
-        0) clear; show_goodbye ;;
+        0|s) clear; show_goodbye ;;
         a) add_provider ;;
         r) remove_provider ;;
-        m) change_openrouter_model ;;
+        e) rename_provider ;;
+        m) change_model ;;
         n) use_native_anthropic ;;
         v) view_current ;;
         *)
@@ -132,16 +135,7 @@ activate_provider() {
 }
 
 use_native_anthropic() {
-    clear
-    echo ""
-    echo -e "  ${GREEN}${BOLD}Anthropic nativo ativado${RESET}"
-    echo ""
-    echo -e "  ${GRAY}Proximos passos:${RESET}"
-    echo -e "    ${WHITE}1.${RESET} ${GRAY}Reinicie o Claude Code${RESET}"
-    echo -e "    ${WHITE}2.${RESET} ${GRAY}Rode /login ou claude login${RESET}"
-    echo -e "    ${WHITE}3.${RESET} ${GRAY}Selecione Anthropic${RESET}"
-    echo ""
-    read -rp "  Pressione Enter para continuar... " tmp
+    claude login
     show_menu
 }
 
@@ -735,7 +729,7 @@ remove_provider() {
     show_menu
 }
 
-change_openrouter_model() {
+change_model() {
     clear
     echo ""
 
@@ -757,12 +751,17 @@ change_openrouter_model() {
     api_key=$(jq -r '.env.ANTHROPIC_AUTH_TOKEN // empty' "$SETTINGS" 2>/dev/null)
     current_model=$(jq -r '.env.ANTHROPIC_MODEL // empty' "$SETTINGS" 2>/dev/null)
 
-    [[ "$base_url" != *openrouter.ai* ]] && {
-        echo -e "  ${RED}O provider ativo nao e OpenRouter.${RESET}"
+    provider_type=""
+    if [[ "$base_url" == *openrouter.ai* ]]; then
+        provider_type="OpenRouter"
+    elif [[ "$base_url" == *nvidia* ]]; then
+        provider_type="NVIDIA"
+    else
+        echo -e "  ${RED}O provider ativo nao e OpenRouter nem NVIDIA.${RESET}"
         read -rp "  Pressione Enter para continuar... " tmp
         show_menu
         return
-    }
+    fi
 
     [ -z "$api_key" ] && {
         echo -e "  ${RED}API key nao encontrada.${RESET}"
@@ -771,12 +770,18 @@ change_openrouter_model() {
         return
     }
 
+    echo -e "  ${GRAY}Provider:${RESET} ${WHITE}$provider_type${RESET}"
     echo -e "  ${GRAY}Modelo atual:${RESET} ${WHITE}${current_model:-nao definido}${RESET}"
     echo -e "  ${GRAY}Buscando modelos...${RESET}"
     echo ""
 
     model_selected=""
-    select_openrouter_model "$api_key" && model_selected="$SELECTED_MODEL"
+
+    if [ "$provider_type" = "OpenRouter" ]; then
+        select_openrouter_model "$api_key" && model_selected="$SELECTED_MODEL"
+    elif [ "$provider_type" = "NVIDIA" ]; then
+        select_nvidia_model "$api_key" && model_selected="$SELECTED_MODEL"
+    fi
 
     [ -z "$model_selected" ] && {
         echo -e "  ${GRAY}Operacao cancelada.${RESET}"
@@ -868,7 +873,75 @@ show_goodbye() {
     echo ""
     echo -e "  ${CYAN}[T]/ Hasta la vista!${RESET}"
     echo ""
+    echo -e "  ${GRAY}v1.0.3 - Danubio Lagoa (2026)${RESET}"
+    echo ""
     exit 0
+}
+
+rename_provider() {
+    clear
+    echo ""
+    echo -e "  ${BOLD}${BLUE}Renomear Provider${RESET}"
+    echo -e "$SEP"
+    echo -e "  ${GRAY}Qual provider deseja renomear?${RESET}"
+    echo ""
+
+    count=0 files=()
+    for f in "$CONFIG_DIR"/settings-*.json; do
+        [ -f "$f" ] || continue
+        base=$(basename "$f" .json)
+        [ "$base" = "settings-before-native-anthropic" ] && continue
+        count=$((count + 1))
+        name="${base#settings-}"
+        files+=("$name")
+        echo -e "    ${CYAN}[$count]${RESET} ${WHITE}$name${RESET}"
+    done
+
+    echo ""
+    echo -e "  ${GRAY}[0]${RESET} Cancelar"
+    echo ""
+    echo -n "  Escolha: "
+    read -r rdel
+
+    [ "$rdel" = "0" ] || [ -z "$rdel" ] && show_menu && return
+
+    if [[ "$rdel" =~ ^[0-9]+$ ]] && [ "$rdel" -ge 1 ] && [ "$rdel" -le "$count" ]; then
+        selected="${files[$((rdel - 1))]}"
+        echo ""
+        echo -e "  ${GRAY}Provider:${RESET} ${WHITE}$selected${RESET}"
+        echo ""
+        echo -n "  Novo nome: "
+        read -r new_name
+
+        [ -z "$new_name" ] && show_menu && return
+
+        new_name=$(printf "%s" "$new_name" | sed 's/[\\\/:*?"<>|]/-/g; s/^[[:space:]]*//; s/[[:space:]]*$//')
+        [ -z "$new_name" ] && show_menu && return
+
+        old_file="$CONFIG_DIR/settings-$selected.json"
+        new_file="$CONFIG_DIR/settings-$new_name.json"
+
+        [ -f "$new_file" ] && {
+            echo ""
+            echo -e "  ${YELLOW}Ja existe um provider com esse nome: $new_name${RESET}"
+            read -rp "  Pressione Enter para continuar... " tmp
+            show_menu
+            return
+        }
+
+        cp "$old_file" "$new_file"
+        if [ -f "$SETTINGS" ] && cmp -s "$old_file" "$SETTINGS"; then
+            cp "$new_file" "$SETTINGS"
+        fi
+        rm -f "$old_file"
+
+        echo ""
+        echo -e "  ${GREEN}${BOLD}Provider renomeado para $new_name!${RESET}"
+    fi
+
+    echo ""
+    read -rp "  Pressione Enter para continuar... " tmp
+    show_menu
 }
 
 # Verifica se a pasta .claude existe

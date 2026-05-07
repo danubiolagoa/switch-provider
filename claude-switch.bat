@@ -90,26 +90,33 @@ for /L %%I in (1,1,%COUNT%) do (
 echo.
 echo !SEP!
 echo   !GRAY![a]!RESET! Adicionar novo provider
+echo   !GRAY![e]!RESET! Renomear provider
 echo   !GRAY![r]!RESET! Remover provider
+echo   !GRAY![m]!RESET! Trocar modelo
 echo   !GRAY![n]!RESET! Claude padrao (Anthropic login)
 echo   !GRAY![v]!RESET! Ver provider atual
 echo !SEP!
-echo   !GRAY![0]!RESET! !WHITE!Sair!RESET!
+echo   !GRAY![s]!RESET! !WHITE!Sair!RESET!
 echo.
 if defined CURRENT_MODEL (
     echo   !GRAY!Modelo:!RESET! !CYAN!!CURRENT_MODEL!!RESET!
 )
 echo.
+set "CHOICE="
 set /p CHOICE="  Escolha: "
+if "!CHOICE!"=="" goto MENU
+set "CHOICE=!CHOICE:~0,-1!"
 
-if "%CHOICE%"=="0" goto FIM
-if "%CHOICE%"=="a" goto NOVO
-if "%CHOICE%"=="r" goto REMOVER
-if "%CHOICE%"=="n" goto USE_NATIVE_ANTHROPIC
-if "%CHOICE%"=="v" goto STATUS
+if /i "!CHOICE!"=="s" goto FIM
+if /i "!CHOICE!"=="a" goto NOVO
+if /i "!CHOICE!"=="e" goto RENOMEAR
+if /i "!CHOICE!"=="r" goto REMOVER
+if /i "!CHOICE!"=="m" goto CHANGE_MODEL
+if /i "!CHOICE!"=="n" goto USE_NATIVE_ANTHROPIC
+if /i "!CHOICE!"=="v" goto STATUS
 
 for /L %%I in (1,1,%COUNT%) do (
-    if "%CHOICE%"=="%%I" (
+    if "!CHOICE!"=="%%I" (
         call :ATIVAR "!FILE_%%I!" "!LABEL_%%I!"
         goto MENU
     )
@@ -151,29 +158,7 @@ pause
 goto MENU
 
 :USE_NATIVE_ANTHROPIC
-cls
-echo.
-if exist "%SETTINGS%" copy /Y "%SETTINGS%" "%CONFIG_DIR%\settings-before-native-anthropic.json" >nul
-set "TMP_NATIVE_SETTINGS=%SETTINGS%.tmp"
-(
-    echo {
-    echo   "env": {
-    echo     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
-    echo   },
-    echo   "autoUpdatesChannel": "latest"
-    echo }
-) > "!TMP_NATIVE_SETTINGS!"
-move /Y "!TMP_NATIVE_SETTINGS!" "%SETTINGS%" >nul
-echo.
-echo   !GREEN!Anthropic Nativo Ativado!RESET!
-echo.
-echo   !GRAY!Proximos passos:!RESET!
-echo.
-echo     1) !GRAY!Reinicie o Claude Code!RESET!
-echo     2) !GRAY!Rode /login ou claude login!RESET!
-echo     3) !GRAY!Selecione Anthropic!RESET!
-echo.
-pause
+start "" "claude" login
 goto MENU
 
 :NOVO
@@ -473,6 +458,8 @@ echo   !BOLD!!BLUE!Obrigado por usar!!RESET!
 echo   !GRAY!Claude Code - Provider Manager!RESET!
 echo.
 echo   !CYAN![T] /!RESET! !WHITE!Hasta la vista!!RESET!
+echo.
+echo   !GRAY!v1.0.3 - Danubio Lagoa (2026)!RESET!
 echo.
 exit /b 0
 
@@ -1065,3 +1052,283 @@ for %%F in ("%CONFIG_DIR%\settings-*") do (
     )
 )
 goto :EOF
+
+REM ============================================================
+REM Renomear provider
+REM ============================================================
+
+:RENOMEAR
+cls
+echo.
+echo   !BOLD!!BLUE!Renomear Provider!RESET!
+echo.
+set C2=0
+for %%F in ("%CONFIG_DIR%\settings-*.json") do (
+    set "RL=%%~nF"
+    if /i not "!RL!"=="settings-before-native-anthropic" (
+        set /a C2+=1
+        set "RF_!C2!=%%~nF"
+        set "RL=!RL:settings-=!"
+        set "RL_!C2!=!RL!"
+        echo     !CYAN![!C2!]!RESET! !WHITE!!RL!!RESET!
+    )
+)
+echo.
+echo   !GRAY![0]!RESET! Cancelar
+echo.
+set /p RD="  Escolha: "
+if "!RD!"=="0" goto MENU
+
+for /L %%I in (1,1,%C2%) do (
+    if "!RD!"=="%%I" (
+        echo.
+        echo   Provider: !WHITE!!RL_%%I!!RESET!
+        echo.
+        set /p NEW_NAME="  Novo nome: "
+        if "!NEW_NAME!"=="" goto MENU
+
+        for /f "usebackq delims=" %%A in (`powershell -NoProfile -Command "$n=[string]$env:NEW_NAME; $n=$n.Trim(); $n=[regex]::Replace($n,'[^A-Za-z0-9._ -]','-'); $n=$n.Trim(' ','.'); [Console]::Write($n)"`) do set "NEW_NAME=%%A"
+        if "!NEW_NAME!"=="" goto MENU
+
+        set "OLD_FILE=%CONFIG_DIR%\settings-!RL_%%I!.json"
+        set "NEW_FILE=%CONFIG_DIR%\settings-!NEW_NAME!.json"
+
+        if exist "!NEW_FILE!" (
+            echo.
+            echo   !YELLOW![AVISO]!RESET! Ja existe um provider com esse nome: !NEW_NAME!
+            pause
+            goto MENU
+        )
+
+        copy /Y "!OLD_FILE!" "!NEW_FILE!" >nul
+        if exist "%SETTINGS%" (
+            fc /b "!OLD_FILE!" "%SETTINGS%" >nul 2>&1
+            if !errorlevel! EQU 0 (
+                set "TMP_SETTINGS=%SETTINGS%.tmp"
+                copy /Y "!NEW_FILE!" "!TMP_SETTINGS!" >nul
+                move /Y "!TMP_SETTINGS!" "%SETTINGS%" >nul
+            )
+        )
+        del "!OLD_FILE!" 2>nul
+        echo.
+        echo   !GREEN![OK]!RESET! Provider renomeado para !NEW_NAME!.
+        pause
+        goto MENU
+    )
+)
+goto MENU
+
+REM ============================================================
+REM Trocar modelo (OpenRouter / NVIDIA)
+REM ============================================================
+
+:CHANGE_MODEL
+cls
+echo.
+
+if not exist "%SETTINGS%" (
+    echo   !RED![ERRO]!RESET! settings.json nao encontrado!
+    pause
+    goto MENU
+)
+
+for /f "usebackq delims=" %%B in (`powershell -NoProfile -Command "$j = Get-Content -Raw -LiteralPath '%SETTINGS%' | ConvertFrom-Json; if ($j.env.ANTHROPIC_BASE_URL) { [string]$j.env.ANTHROPIC_BASE_URL } else { [string]$null }"`) do set "CURRENT_BASE_URL=%%B"
+
+if not defined CURRENT_BASE_URL (
+    echo   !RED![ERRO]!RESET! Provider atual nao tem BASE_URL.
+    echo   Use [a] para adicionar OpenRouter ou NVIDIA.
+    pause
+    goto MENU
+)
+
+set "IS_OPENROUTER=0"
+echo !CURRENT_BASE_URL! | findstr /I /C:"openrouter" >nul 2>&1
+if not errorlevel 1 set "IS_OPENROUTER=1"
+
+set "IS_NVIDIA=0"
+echo !CURRENT_BASE_URL! | findstr /I /C:"nvidia" >nul 2>&1
+if not errorlevel 1 set "IS_NVIDIA=1"
+
+if "!IS_OPENROUTER!"=="0" (
+    if "!IS_NVIDIA!"=="0" (
+        echo   !RED![ERRO]!RESET! Provider atual nao e OpenRouter ou NVIDIA.
+        echo   OpenRouter: !CYAN!!CURRENT_BASE_URL!!
+        pause
+        goto MENU
+    )
+)
+
+for /f "usebackq delims=" %%K in (`powershell -NoProfile -Command "$j = Get-Content -Raw -LiteralPath '%SETTINGS%' | ConvertFrom-Json; if ($j.env.ANTHROPIC_AUTH_TOKEN) { [string]$j.env.ANTHROPIC_AUTH_TOKEN } else { [string]$null }"`) do set "API_KEY=%%K"
+
+if not defined API_KEY (
+    echo   !RED![ERRO]!RESET! API key nao encontrada no settings.json
+    pause
+    goto MENU
+)
+
+if "!IS_OPENROUTER!"=="1" goto FETCH_OPENROUTER_MODELS
+if "!IS_NVIDIA!"=="1" goto FETCH_NVIDIA_MODELS
+goto MENU
+
+:FETCH_OPENROUTER_MODELS
+set "RESPONSE_FILE=%TEMP%\openrouter_models_resp_%RANDOM%.txt"
+set "MODELS_FILE=%TEMP%\openrouter_models_list_%RANDOM%.txt"
+set "FETCH_ERR=%TEMP%\openrouter_fetch_err_%RANDOM%.txt"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\fetch-openrouter.ps1" "!API_KEY!" "!MODELS_FILE!" "!RESPONSE_FILE!" 2> "!FETCH_ERR!"
+set "FETCH_RC=!errorlevel!"
+
+if "!FETCH_RC!" neq "0" (
+    cls
+    echo.
+    echo   !RED![ERRO]!RESET! Falha ao buscar modelos OpenRouter.
+    if exist "!FETCH_ERR!" (
+        set "ERR_MSG="
+        for /f "usebackq delims=" %%E in ("!FETCH_ERR!") do if not defined ERR_MSG set "ERR_MSG=%%E"
+        if defined ERR_MSG echo   !ERR_MSG!
+    )
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    echo.
+    pause
+    goto MENU
+)
+
+if not exist "!MODELS_FILE!" (
+    echo   !RED![ERRO]!RESET! Nenhum modelo encontrado.
+    del "!RESPONSE_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    pause
+    goto MENU
+)
+
+set /a TOTAL_MODELS=0
+for /f "usebackq delims=" %%L in ("!MODELS_FILE!") do set /a TOTAL_MODELS+=1
+if "!TOTAL_MODELS!"=="0" (
+    echo   !RED![ERRO]!RESET! Nenhum modelo encontrado.
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    pause
+    goto MENU
+)
+
+set "SELECTED_MODEL="
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\select-model.ps1" "!MODELS_FILE!" "Selecionar Modelo - OpenRouter" 15 >nul
+if exist "%TEMP%\selected_model.txt" (
+    set /p SELECTED_MODEL= < "%TEMP%\selected_model.txt"
+    del "%TEMP%\selected_model.txt" 2>nul
+)
+
+if not defined SELECTED_MODEL (
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    goto MENU
+)
+
+goto UPDATE_MODEL
+
+:FETCH_NVIDIA_MODELS
+set "RESPONSE_FILE=%TEMP%\nvidia_models_resp_%RANDOM%.txt"
+set "MODELS_FILE=%TEMP%\nvidia_models_list_%RANDOM%.txt"
+set "FETCH_ERR=%TEMP%\nvidia_fetch_err_%RANDOM%.txt"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\fetch-nvidia.ps1" "!API_KEY!" "!MODELS_FILE!" "!RESPONSE_FILE!" 2> "!FETCH_ERR!"
+set "FETCH_RC=!errorlevel!"
+
+if "!FETCH_RC!" neq "0" (
+    cls
+    echo.
+    echo   !RED![ERRO]!RESET! Falha ao buscar modelos NVIDIA.
+    if exist "!FETCH_ERR!" (
+        set "ERR_MSG="
+        for /f "usebackq delims=" %%E in ("!FETCH_ERR!") do if not defined ERR_MSG set "ERR_MSG=%%E"
+        if defined ERR_MSG echo   !ERR_MSG!
+    )
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    echo.
+    pause
+    goto MENU
+)
+
+if not exist "!MODELS_FILE!" (
+    echo   !RED![ERRO]!RESET! Nenhum modelo encontrado.
+    del "!RESPONSE_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    pause
+    goto MENU
+)
+
+set /a TOTAL_MODELS=0
+for /f "usebackq delims=" %%L in ("!MODELS_FILE!") do set /a TOTAL_MODELS+=1
+if "!TOTAL_MODELS!"=="0" (
+    echo   !RED![ERRO]!RESET! Nenhum modelo encontrado.
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    pause
+    goto MENU
+)
+
+set "SELECTED_MODEL="
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\select-model.ps1" "!MODELS_FILE!" "Selecionar Modelo - NVIDIA" 15 >nul
+if exist "%TEMP%\selected_model.txt" (
+    set /p SELECTED_MODEL= < "%TEMP%\selected_model.txt"
+    del "%TEMP%\selected_model.txt" 2>nul
+)
+
+if not defined SELECTED_MODEL (
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    goto MENU
+)
+
+goto UPDATE_MODEL
+
+:UPDATE_MODEL
+set "TMP_SETTINGS=%SETTINGS%.tmp"
+powershell -NoProfile -Command ^
+"$j = Get-Content -Raw -LiteralPath $env:SETTINGS | ConvertFrom-Json; " ^
+"$j.env.ANTHROPIC_MODEL = $env:SELECTED_MODEL; " ^
+"$j.env.ANTHROPIC_SMALL_FAST_MODEL = $env:SELECTED_MODEL; " ^
+"$j.env.ANTHROPIC_DEFAULT_SONNET_MODEL = $env:SELECTED_MODEL; " ^
+"$j.env.ANTHROPIC_DEFAULT_OPUS_MODEL = $env:SELECTED_MODEL; " ^
+"$j.env.ANTHROPIC_DEFAULT_HAIKU_MODEL = $env:SELECTED_MODEL; " ^
+"$j | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $env:TMP_SETTINGS -Encoding ascii" >nul 2>&1
+
+if not exist "!TMP_SETTINGS!" (
+    echo   !RED![ERRO]!RESET! Falha ao salvar.
+    del "!RESPONSE_FILE!" 2>nul
+    del "!MODELS_FILE!" 2>nul
+    del "!FETCH_ERR!" 2>nul
+    pause
+    goto MENU
+)
+
+move /Y "!TMP_SETTINGS!" "%SETTINGS%" >nul
+
+for %%F in ("%CONFIG_DIR%\settings-*.json") do (
+    set "CF=%%~nF"
+    if /i not "!CF!"=="settings-before-native-anthropic" (
+        fc /b "%%F" "%SETTINGS%" >nul 2>&1
+        if !errorlevel! EQU 0 copy /Y "%SETTINGS%" "%%F" >nul 2>&1
+    )
+)
+
+cls
+echo.
+echo   !GREEN![OK]!RESET! Modelo atualizado: !SELECTED_MODEL!
+echo.
+echo   !YELLOW![AVISO] Reinicie o Claude Code!RESET!
+echo.
+
+del "!RESPONSE_FILE!" 2>nul
+del "!MODELS_FILE!" 2>nul
+del "!FETCH_ERR!" 2>nul
+pause
+goto MENU
