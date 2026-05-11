@@ -21,13 +21,25 @@ Claude Code reads one active file at `~/.claude/settings.json`. Switch Provider 
 
 ### Windows (available)
 
-Download the `.exe` installer from GitHub Releases and open it with a double click:
+The installer is available on the GitHub Releases page:
+
+```text
+https://github.com/danubiolagoa/switch-provider/releases
+```
+
+In the latest release, open the **Assets** section and download:
 
 ```text
 switch-provider_1.0.3_x64-setup.exe
 ```
 
-After installation, open Switch Provider from the Start Menu.
+Then run the `.exe` with a double click and open Switch Provider from the Start Menu.
+
+Direct link to the latest release:
+
+```text
+https://github.com/danubiolagoa/switch-provider/releases/latest
+```
 
 Via PowerShell:
 

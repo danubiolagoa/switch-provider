@@ -21,13 +21,25 @@ O Claude Code lê um único arquivo ativo em `~/.claude/settings.json`. O Switch
 
 ### Windows (disponivel)
 
-Baixe o instalador `.exe` na pagina de Releases do GitHub e execute com duplo clique:
+O instalador fica na pagina de Releases do GitHub:
+
+```text
+https://github.com/danubiolagoa/switch-provider/releases
+```
+
+Na release mais recente, abra a area **Assets** e baixe o arquivo:
 
 ```text
 switch-provider_1.0.3_x64-setup.exe
 ```
 
-Depois de instalar, abra o Switch Provider pelo Menu Iniciar.
+Depois, execute o `.exe` com duplo clique e abra o Switch Provider pelo Menu Iniciar.
+
+Link direto para a ultima release:
+
+```text
+https://github.com/danubiolagoa/switch-provider/releases/latest
+```
 
 Via PowerShell:
 
