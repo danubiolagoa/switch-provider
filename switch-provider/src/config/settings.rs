@@ -189,7 +189,7 @@ impl ProviderType {
     /// Get the default endpoint for this provider type
     pub fn endpoint(&self) -> Option<&'static str> {
         match self {
-            ProviderType::MiniMax => Some("https://api.minimaxi.com/anthropic"),
+            ProviderType::MiniMax => Some("https://api.minimax.io/anthropic"),
             ProviderType::OpenRouter => Some("https://openrouter.ai/api"),
             ProviderType::OpenCodeZen => Some("https://opencode.ai/zen"),
             ProviderType::OpenCodeGo => Some("https://opencode.ai/zen/go"),
@@ -274,13 +274,13 @@ mod tests {
     #[test]
     fn test_settings_with_base_url() {
         let settings = Settings::with_base_url(
-            "https://api.minimaxi.com/anthropic".to_string(),
+            "https://api.minimax.io/anthropic".to_string(),
             "my-api-key".to_string(),
             "MiniMax-M2.7".to_string(),
         );
         assert_eq!(
             settings.env.base_url,
-            Some("https://api.minimaxi.com/anthropic".to_string())
+            Some("https://api.minimax.io/anthropic".to_string())
         );
         assert_eq!(settings.env.model, Some("MiniMax-M2.7".to_string()));
         assert!(!settings.is_native());

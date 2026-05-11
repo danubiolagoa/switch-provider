@@ -399,7 +399,7 @@ mod tests {
         let store = ConfigStore::new_with_dir(dir.clone()).await.unwrap();
 
         let settings = Settings::with_base_url(
-            "https://api.minimaxi.com/anthropic".to_string(),
+            "https://api.minimax.io/anthropic".to_string(),
             "test-key".to_string(),
             "MiniMax-M2.7".to_string(),
         );
@@ -425,7 +425,7 @@ mod tests {
         let store = ConfigStore::new_with_dir(dir.clone()).await.unwrap();
 
         let settings = Settings::with_base_url(
-            "https://api.minimaxi.com/anthropic".to_string(),
+            "https://api.minimax.io/anthropic".to_string(),
             "test-key".to_string(),
             "~moonshotai/kimi-latest".to_string(),
         );
