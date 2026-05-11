@@ -1,0 +1,74 @@
+name: Build release installers
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Package ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+            formats: nsis
+          - platform: linux
+            os: ubuntu-latest
+            formats: deb,appimage
+          - platform: macos
+            os: macos-latest
+            formats: app,dmg
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Linux packaging dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libxkbcommon-dev \
+            libfontconfig1-dev \
+            libwayland-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libssl-dev \
+            patchelf
+
+      - name: Run tests
+        working-directory: switch-provider
+        run: cargo test
+
+      - name: Build packages
+        working-directory: switch-provider
+        run: npx --yes @crabnebula/packager --config Packager.toml --formats ${{ matrix.formats }}
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: switch-provider-${{ matrix.platform }}
+          path: dist/*
+
+      - name: Publish GitHub release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

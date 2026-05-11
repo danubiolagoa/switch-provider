@@ -1,138 +1,125 @@
-# Claude Provider Manager
+# Switch Provider
 
-**Versão atual: 1.0.2**
+Aplicativo desktop em Rust/Slint para gerenciar providers de LLM usados pelo Claude Code.
 
-Gerencie e alterne entre múltiplos providers de LLM no **Claude Code** — MiniMax, OpenRouter, Z.AI/GLM, Anthropic e qualquer endpoint compatível com a API da Anthropic.
+O Claude Code lê um único arquivo ativo em `~/.claude/settings.json`. O Switch Provider mantém backups como `settings-minimax.json`, `settings-openrouter.json` e outros `settings-NOME.json`, permitindo alternar o provider ativo sem reconfigurar tudo manualmente.
 
----
+## Recursos
 
-## Por que isso existe?
+- Interface desktop para adicionar, ativar, renomear e remover providers.
+- Providers suportados: MiniMax, OpenRouter, OpenCode Zen, OpenCode Go, Anthropic, Z.AI/GLM, Google AI, OpenAI e Custom.
+- Troca dinâmica de modelo para OpenRouter, OpenCode Zen e OpenCode Go, com carregamento atualizado pela API e filtro na interface.
+- OpenCode Zen validado em uso real com Claude Code. O catalogo usa IDs crus, como `kimi-k2.5`, sem prefixos `opencode/`.
+- OpenCode Go fica disponivel como provider separado e requer assinatura OpenCode Go ativa.
+- Modelos OpenCode Zen incompatíveis com tools/function calling do Claude Code podem ser ocultados da lista, como `deepseek-v4-flash-free`.
+- Visualização segura do `settings.json`, com tokens e API keys mascarados.
+- API key fica oculta apos carregar modelos no cadastro do provider.
+- Escrita com arquivo temporário e backup `.bak` para reduzir risco de corrupção.
+- Janela configurada com renderer `software` por padrão e tamanho mínimo para reduzir falhas ao mover entre monitores/DPI.
 
-O Claude Code só suporta um provider por vez via `~/.claude/settings.json`. Este comando faz parte do **switch-provider** — projeto open source para gerenciar múltiplos providers de LLM no Claude Code.
+## Como instalar
 
-- **Script interativo** para primeiro setup e alternância rápida (Windows e Linux/Mac)
-- **Slash command `/switch-provider`** para alternar de dentro do próprio Claude Code, sem sair do terminal
+### Windows
 
----
+Baixe o instalador `.exe` na pagina de Releases do GitHub e execute com duplo clique.
 
-## Estrutura do repositório
+Via PowerShell:
 
-```
-switch-provider-v1/
-├── README.md
-├── LICENSE
-├── .gitignore
-├── claude-switch.bat          # Script interativo — Windows
-├── claude-switch.sh           # Script interativo — Linux/Mac
-└── .claude/
-    └── commands/
-        └── switch-provider.md # Slash command para o Claude Code
-```
-
----
-
-## Instalação
-
-### 1. Clone o repositório
-
-```bash
-git clone https://github.com/SEU_USUARIO/switch-provider.git
-cd switch-provider
-```
-
-### 2. Copie o slash command para a pasta do Claude Code
-
-**Linux/Mac:**
-```bash
-mkdir -p ~/.claude/commands
-cp .claude/commands/switch-provider.md ~/.claude/commands/
-```
-
-**Windows (PowerShell):**
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.claude\commands"
-Copy-Item ".claude\commands\switch-provider.md" "$HOME\.claude\commands\"
+irm https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.ps1 | iex
 ```
 
-### 3. Configure o primeiro provider com o script
+Depois que o pacote for aceito no Winget, a instalacao tambem podera ser:
 
-> ⚠️ O slash command `/switch-provider` só funciona depois que o Claude Code já está rodando com um provider válido. Use o script abaixo para o **primeiro setup**.
-
-**Windows** — execute o arquivo diretamente:
-```
-claude-switch.bat
+```powershell
+winget install DanubioLagoa.SwitchProvider
 ```
 
-**Linux/Mac** — dê permissão e execute:
+### Linux
+
+Via curl:
+
 ```bash
-chmod +x claude-switch.sh
-./claude-switch.sh
+curl -fsSL https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.sh | bash
 ```
 
-O script vai guiar você para configurar o primeiro provider e gerar o `settings.json` correto.
+O script tenta instalar `.deb` em distros com `apt`; se nao houver `.deb`, baixa o `.AppImage` para `~/.local/bin/switch-provider`.
 
----
+### macOS
 
-## Uso
+Via curl:
 
-### Via script (fora do Claude Code)
-
-Execute `claude-switch.bat` (Windows) ou `./claude-switch.sh` (Linux/Mac) a qualquer momento para:
-
-- Alternar entre providers já configurados
-- Adicionar um novo provider
-- Remover um provider
-- Trocar o modelo ativo do OpenRouter sem recadastrar a API key
-- Ver qual provider está ativo
-
-### Via slash command (dentro do Claude Code)
-
-Com o Claude Code rodando, digite:
-
-```
-/switch-provider
+```bash
+curl -fsSL https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.sh | bash
 ```
 
-O Claude vai listar seus providers disponíveis e guiar a alternância interativamente.
+O script baixa o `.dmg` da ultima release, monta o volume e copia o `.app` para `/Applications`.
 
----
+Se o download for divulgado no site de um parceiro, a pagina pode apontar para esses mesmos scripts ou para os assets da GitHub Release.
 
-## Providers suportados
+## Como rodar em desenvolvimento
 
-| Provider | Endpoint | Notas |
-|---|---|---|
-| **MiniMax** | `https://api.minimax.io/anthropic` | Usuários internacionais |
-| **OpenRouter** | `https://openrouter.ai/api` | Acesso a dezenas de modelos |
-| **Z.AI / GLM** | `https://api.z.ai/api/anthropic` | Modelos GLM da Zhipu AI |
-| **Anthropic** | *(nativo)* | Usa `ANTHROPIC_API_KEY` diretamente |
-| **Google AI Studio** | `https://generativelanguage.googleapis.com` | Modelos Gemini |
-| **OpenAI** | `https://api.openai.com/v1` | Modelos GPT |
-| **Custom** | Qualquer endpoint compatível | Digite manualmente |
-
----
-
-## Como funciona
-
-O Claude Code lê o arquivo `~/.claude/settings.json` a cada inicialização. Este projeto mantém arquivos de backup nomeados como `settings-NOME.json` e copia o escolhido como `settings.json` na hora de alternar.
-
+```powershell
+cd switch-provider
+cargo run
 ```
+
+Build de release:
+
+```powershell
+cd switch-provider
+cargo build --release
+```
+
+Executável gerado:
+
+```text
+switch-provider/target/release/switch-provider.exe
+```
+
+Gerar instalador Windows local:
+
+```powershell
+cd switch-provider
+npx --yes @crabnebula/packager --config Packager.toml --formats nsis
+```
+
+O instalador NSIS sera gerado em `dist/`. Consulte `.docs/instalador-windows.md` para o checklist de QA.
+
+## Configuração
+
+Os arquivos ficam em `~/.claude`:
+
+```text
 ~/.claude/
-├── settings.json              ← ativo no momento
-├── settings-minimax.json      ← backup MiniMax
-├── settings-openrouter.json   ← backup OpenRouter
-├── settings-glm.json          ← backup GLM
-└── commands/
-    └── switch-provider.md     ← slash command
+├── settings.json
+├── settings-minimax.json
+├── settings-openrouter.json
+└── settings-outro-provider.json
 ```
 
----
+Ao ativar um provider, o app lê o backup correspondente e grava seu conteúdo em `settings.json`.
 
-## Contribuindo
+## Segurança
 
-Pull requests são bem-vindos! Sugestões de novos providers pré-configurados, melhorias nos scripts ou suporte a novas plataformas são especialmente apreciadas.
+Não commite `settings.json`, `settings-*.json`, chaves de API, binários gerados ou arquivos dentro de `target/`. O `.gitignore` já cobre esses casos.
 
----
+Os instaladores não incluem suas chaves locais nem arquivos `settings*.json`; cada usuário cadastra os próprios providers após instalar.
 
-## Licença
+## Desenvolvimento
 
-MIT
+```powershell
+cd switch-provider
+cargo test
+cargo build --release
+```
+
+Antes de publicar alterações, valide pelo menos:
+
+- alternar MiniMax -> OpenRouter -> MiniMax;
+- trocar o modelo OpenRouter/OpenCode Zen e confirmar que `settings.json` e `settings-NOME.json` foram atualizados;
+- confirmar OpenCode Zen funcionando no Claude Code com modelo aceito pelo gateway;
+- confirmar que `Mudar modelo` recarrega o catalogo atual e nao mostra modelos bloqueados como `deepseek-v4-flash-free`;
+- abrir "Ver configs" e confirmar que a chave está mascarada;
+- mover a janela entre dois monitores e confirmar que ela nao minimiza/some;
+- adicionar provider e confirmar que NVIDIA não aparece na lista.

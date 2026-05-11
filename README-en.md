@@ -1,139 +1,125 @@
-# Claude Provider Manager
+# Switch Provider
 
-**Current version: 1.0.2**
+Rust/Slint desktop app for managing LLM providers used by Claude Code.
 
-Manage and switch between multiple LLM providers in **Claude Code** — MiniMax, OpenRouter, Z.AI/GLM, Anthropic, and any API-compatible endpoint.
+Claude Code reads one active file at `~/.claude/settings.json`. Switch Provider keeps named backups such as `settings-minimax.json`, `settings-openrouter.json`, and other `settings-NAME.json` files so the active provider can be changed without manual JSON editing.
 
----
+## Features
 
-## Why does this exist?
+- Desktop UI to add, activate, rename, and remove providers.
+- Supported providers: MiniMax, OpenRouter, OpenCode Zen, OpenCode Go, Anthropic, Z.AI/GLM, Google AI, OpenAI, and Custom.
+- Dynamic model switching for OpenRouter, OpenCode Zen, and OpenCode Go, including fresh API model loading and UI filtering.
+- OpenCode Zen has been validated in real Claude Code usage. Its catalog uses raw IDs, such as `kimi-k2.5`, without `opencode/` prefixes.
+- OpenCode Go is available as a separate provider and requires an active OpenCode Go subscription.
+- OpenCode Zen models that are incompatible with Claude Code tools/function calling can be hidden from the list, such as `deepseek-v4-flash-free`.
+- Safe `settings.json` viewer with API keys and tokens masked.
+- API keys are hidden after model loading in the provider setup flow.
+- Temporary-file write plus `.bak` backup to reduce settings corruption risk.
+- The window defaults to Slint's `software` renderer and a minimum size to reduce monitor/DPI move glitches.
 
-Claude Code only supports one provider at a time via `~/.claude/settings.json`. This command is part of **switch-provider** — an open source project to manage multiple LLM providers in Claude Code.
+## Install
 
-- **Interactive script** for initial setup and quick switching (Windows and Linux/Mac)
-- **Slash command `/switch-provider`** to switch from inside Claude Code, without leaving the terminal
+### Windows
 
----
+Download the `.exe` installer from GitHub Releases and open it with a double click.
 
-## Repository structure
+Via PowerShell:
 
-```
-switch-provider-v1/
-├── README.md
-├── README-en.md
-├── LICENSE
-├── .gitignore
-├── claude-switch.bat          # Interactive script — Windows
-├── claude-switch.sh           # Interactive script — Linux/Mac
-└── .claude/
-    └── commands/
-        └── switch-provider.md # Slash command for Claude Code
-```
-
----
-
-## Installation
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/YOUR_USER/switch-provider.git
-cd switch-provider
-```
-
-### 2. Copy the slash command to Claude Code's folder
-
-**Linux/Mac:**
-```bash
-mkdir -p ~/.claude/commands
-cp .claude/commands/switch-provider.md ~/.claude/commands/
-```
-
-**Windows (PowerShell):**
 ```powershell
-New-Item -ItemType Directory -Force "$HOME\.claude\commands"
-Copy-Item ".claude\commands\switch-provider.md" "$HOME\.claude\commands\"
+irm https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.ps1 | iex
 ```
 
-### 3. Configure your first provider with the script
+After the package is accepted into Winget, installation will also be available with:
 
-> ⚠️ The `/switch-provider` slash command only works after Claude Code is already running with a valid provider. Use the script below for the **first setup**.
-
-**Windows** — run the file directly:
-```
-claude-switch.bat
+```powershell
+winget install DanubioLagoa.SwitchProvider
 ```
 
-**Linux/Mac** — give permission and run:
+### Linux
+
+Via curl:
+
 ```bash
-chmod +x claude-switch.sh
-./claude-switch.sh
+curl -fsSL https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.sh | bash
 ```
 
-The script will guide you to configure your first provider and generate the correct `settings.json`.
+The script tries to install `.deb` on apt-based distros; otherwise it downloads the `.AppImage` to `~/.local/bin/switch-provider`.
 
----
+### macOS
 
-## Usage
+Via curl:
 
-### Via script (outside Claude Code)
-
-Run `claude-switch.bat` (Windows) or `./claude-switch.sh` (Linux/Mac) anytime to:
-
-- Switch between already configured providers
-- Add a new provider
-- Remove a provider
-- Change the active OpenRouter model without registering the API key again
-- View which provider is currently active
-
-### Via slash command (inside Claude Code)
-
-With Claude Code running, type:
-
-```
-/switch-provider
+```bash
+curl -fsSL https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.sh | bash
 ```
 
-Claude will list your available providers and guide you through the interactive switch.
+The script downloads the latest `.dmg`, mounts it, and copies the `.app` to `/Applications`.
 
----
+Partner websites can point to these scripts or directly to the GitHub Release assets.
 
-## Supported providers
+## Run for development
 
-| Provider | Endpoint | Notes |
-|---|---|---|
-| **MiniMax** | `https://api.minimax.io/anthropic` | International users |
-| **OpenRouter** | `https://openrouter.ai/api` | Access to dozens of models |
-| **Z.AI / GLM** | `https://api.z.ai/api/anthropic` | GLM models from Zhipu AI |
-| **Anthropic** | *(native)* | Uses `ANTHROPIC_API_KEY` directly |
-| **Google AI Studio** | `https://generativelanguage.googleapis.com` | Gemini models |
-| **OpenAI** | `https://api.openai.com/v1` | GPT models |
-| **Custom** | Any compatible endpoint | Enter manually |
-
----
-
-## How it works
-
-Claude Code reads `~/.claude/settings.json` at each startup. This project keeps backup files named `settings-NAME.json` and copies the chosen one as `settings.json` when switching.
-
+```powershell
+cd switch-provider
+cargo run
 ```
+
+Release build:
+
+```powershell
+cd switch-provider
+cargo build --release
+```
+
+Generated executable:
+
+```text
+switch-provider/target/release/switch-provider.exe
+```
+
+Generate the Windows installer locally:
+
+```powershell
+cd switch-provider
+npx --yes @crabnebula/packager --config Packager.toml --formats nsis
+```
+
+The NSIS installer is generated in `dist/`. See `.docs/instalador-windows.md` for the QA checklist.
+
+## Configuration
+
+Files live in `~/.claude`:
+
+```text
 ~/.claude/
-├── settings.json              ← currently active
-├── settings-minimax.json      ← MiniMax backup
-├── settings-openrouter.json   ← OpenRouter backup
-├── settings-glm.json          ← GLM backup
-└── commands/
-    └── switch-provider.md     ← slash command
+├── settings.json
+├── settings-minimax.json
+├── settings-openrouter.json
+└── settings-other-provider.json
 ```
 
----
+When a provider is activated, the app reads the matching backup and writes it into `settings.json`.
 
-## Contributing
+## Security
 
-Pull requests are welcome! Suggestions for new pre-configured providers, script improvements, or support for new platforms are especially appreciated.
+Do not commit `settings.json`, `settings-*.json`, API keys, generated binaries, or `target/` contents. The `.gitignore` covers these cases.
 
----
+Installers do not include local API keys or `settings*.json` files; each user configures their own providers after installation.
 
-## License
+## Development
 
-MIT
+```powershell
+cd switch-provider
+cargo test
+cargo build --release
+```
+
+Before publishing changes, validate:
+
+- switching MiniMax -> OpenRouter -> MiniMax;
+- changing OpenRouter/OpenCode Zen models and confirming both `settings.json` and `settings-NAME.json` are updated;
+- confirming OpenCode Zen works in Claude Code with a gateway-supported model;
+- confirming `Mudar modelo` refreshes the live catalog and excludes blocked models such as `deepseek-v4-flash-free`;
+- opening "Ver configs" and confirming secrets are masked;
+- moving the window between two monitors and confirming it does not minimize/disappear;
+- adding a provider and confirming NVIDIA is not listed.

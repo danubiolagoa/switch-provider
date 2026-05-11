@@ -1,6 +1,7 @@
 # OS
 .DS_Store
 Thumbs.db
+.codex
 
 # Claude Code settings (contain API keys)
 # These should never be committed
@@ -14,6 +15,12 @@ settings-*.json
 # Temporary files
 *.tmp
 *.bak
+target/
+switch-provider/target/
+dist/
+switch-provider/dist/
+*.exe
+*.pdb
 
 # Hidden/unfinished files
 index.html
@@ -23,3 +30,4 @@ index.html
 
 # Scripts output (local test files)
 /scripts/*.txt
+.assets/*.zip

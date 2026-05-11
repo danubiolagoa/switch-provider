@@ -1,0 +1,25 @@
+name = "switch-provider"
+product-name = "Switch Provider"
+identifier = "com.danubiolagoa.switch-provider"
+version = "1.0.3"
+authors = ["Danubio Lagoa"]
+publisher = "Danubio Lagoa"
+homepage = "https://github.com/danubiolagoa/switch-provider"
+description = "Desktop provider switcher for Claude Code settings."
+long-description = "Switch Provider is a desktop Rust/Slint app for managing Claude Code provider settings without manually editing settings.json."
+category = "DeveloperTool"
+license-file = "../LICENSE"
+out-dir = "../dist"
+binaries-dir = "target/release"
+before-packaging-command = "cargo build --release"
+formats = ["nsis"]
+icons = ["assets/icon.ico", "assets/icon.icns", "assets/icon_256x256.png"]
+
+[[binaries]]
+path = "switch-provider"
+main = true
+
+[nsis]
+installer-icon = "assets/icon.ico"
+installer-mode = "currentUser"
+compression = "lzma"

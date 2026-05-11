@@ -1,32 +1,51 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-This repository is intentionally small and script-focused. The main entry points are [`claude-switch.sh`](/C:/Users/danub/códigos/switch-provider-v1/claude-switch.sh) for Linux/Mac and [`claude-switch.bat`](/C:/Users/danub/códigos/switch-provider-v1/claude-switch.bat) for Windows. The Claude Code slash command lives at [`.claude/commands/switch-provider.md`](/C:/Users/danub/códigos/switch-provider-v1/.claude/commands/switch-provider.md). Project documentation is in [`README.md`](/C:/Users/danub/códigos/switch-provider-v1/README.md), and [`CLAUDE.md`](/C:/Users/danub/códigos/switch-provider-v1/CLAUDE.md) captures behavior and architecture notes for AI-assisted edits.
+## Idioma
+
+- Preferir Portugues-BR em dialogos, explicacoes, planos e atualizacoes.
+- Manter termos tecnicos, nomes de arquivos, APIs, variaveis e erros no idioma original quando fizer sentido.
+
+## Project Structure
+
+Este repositorio agora e centrado no app Rust/Slint em `switch-provider/`.
+
+- `switch-provider/src/main.rs`: ponto de entrada da GUI.
+- `switch-provider/ui/appwindow.slint`: interface desktop.
+- `switch-provider/src/storage/file_store.rs`: persistencia em `~/.claude`.
+- `switch-provider/src/config/settings.rs`: schema do `settings.json`.
+- `switch-provider/src/api/openrouter.rs`: cliente HTTP para catalogos OpenRouter/OpenCode.
+
+Scripts Bash/Batch e slash command legado nao fazem mais parte do projeto.
 
 ## Build, Test, and Development Commands
-There is no build step or package manager in this repo. Use the scripts directly:
 
-- `./claude-switch.sh`: run the interactive provider manager on Linux/Mac.
-- `chmod +x claude-switch.sh`: make the shell script executable before first run.
-- `claude-switch.bat`: run the interactive provider manager on Windows.
-- `cp .claude/commands/switch-provider.md ~/.claude/commands/`: install the slash command on Linux/Mac.
-- `Copy-Item ".claude\\commands\\switch-provider.md" "$HOME\\.claude\\commands\\"`: install the slash command on Windows PowerShell.
+```powershell
+cd switch-provider
+cargo test
+cargo run
+cargo build --release
+```
 
-## Coding Style & Naming Conventions
-Keep shell code POSIX-friendly where practical and preserve the current procedural style. Use 4-space indentation in Bash functions and consistent uppercase variable names for environment-driven values such as `CONFIG_DIR` and `SETTINGS`. In Batch files, keep labels short and uppercase, such as `:MENU` and `:ATIVAR`. File names should remain descriptive and kebab-case or tool-native, matching the existing pattern: `claude-switch.sh`, `switch-provider.md`.
+## Coding Style
+
+- Seguir estilo Rust idiomatico e manter modulos pequenos por responsabilidade.
+- Manter UI em Slint simples, com dimensoes estaveis para botoes/listas.
+- Evitar expor segredos em logs, mensagens, testes ou docs.
+- Preferir recarregar estado real do disco depois de acoes que alterem provider/modelo.
 
 ## Testing Guidelines
-This project currently relies on manual validation. After changes, test both the happy path and failure cases:
 
-- Add, activate, view, and remove a provider.
-- Confirm `~/.claude/settings.json` is updated correctly.
-- Verify the script returns to the menu after each action.
-- Confirm the slash command instructions still match actual script behavior.
+Depois de mudancas, validar:
 
-When possible, test the changed platform directly: Bash changes on Linux/Mac, Batch changes on Windows.
+- MiniMax -> OpenRouter -> MiniMax sem manter modelo antigo.
+- Troca de modelo OpenRouter/OpenCode atualizando `settings.json` e backup ativo.
+- Lista e filtro de modelos OpenRouter/OpenCode.
+- OpenCode Zen validado em uso real no Claude Code.
+- OpenCode Go pendente de validacao com assinatura ativa.
+- Janela movida entre dois monitores sem minimizar/sumir.
+- Visualizacao de configs com secrets mascarados.
+- Cadastro sem NVIDIA.
 
-## Commit & Pull Request Guidelines
-Git history is minimal, with short Portuguese messages such as `Commit Inicial`. Keep commits concise, imperative, and focused on one change, for example: `Adiciona suporte ao provider OpenAI`. Pull requests should include a clear summary, affected platforms, manual test notes, and screenshots or terminal snippets when UI text or menus change.
+## Security
 
-## Security & Configuration Tips
-Do not commit real API keys, populated `settings.json` files, or local secrets from `~/.claude`. Any example config should use placeholders only.
+Nao commitar `settings.json`, `settings-*.json`, API keys, `.tmp`, `.bak`, binarios ou `target/`.
