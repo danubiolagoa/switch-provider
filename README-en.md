@@ -27,10 +27,10 @@ The installer is available on the GitHub Releases page:
 https://github.com/danubiolagoa/switch-provider/releases
 ```
 
-In the latest release, open the **Assets** section and download:
+In the latest release, open the **Assets** section and download the Windows installer. Direct link:
 
 ```text
-switch-provider_1.0.3_x64-setup.exe
+https://github.com/danubiolagoa/switch-provider/releases/download/v1.0.3/switch-provider_1.0.3_x64-setup.exe
 ```
 
 Then run the `.exe` with a double click and open Switch Provider from the Start Menu.
