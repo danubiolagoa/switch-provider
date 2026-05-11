@@ -15,6 +15,8 @@
 - Corrige deteccao de provider ativo e leitura de configs usando comparacao estrutural do `settings.json`.
 - Recarrega o catalogo de modelos ao clicar em `Mudar modelo`.
 - Usa renderer Slint `software` por padrao e tamanho minimo de janela para reduzir falhas em setups com dois monitores/DPI diferentes.
+- Adiciona instalador Windows NSIS gerado com CrabNebula Packager.
+- Adiciona scripts de instalacao por PowerShell e prepara workflow futuro para empacotamento Linux/macOS.
 
 ## Validacoes locais
 
@@ -22,8 +24,11 @@
 - `cargo build --release`
 - `cargo test`
 - Icone associado validado nos executaveis debug/release.
+- Instalador Windows gerado em `dist/switch-provider_1.0.3_x64-setup.exe`.
+- Instalacao e desinstalacao silenciosa validadas em pasta temporaria local.
 - OpenCode Zen validado manualmente no Claude Code.
 - Reteste manual pendente/recomendado: mover janela entre dois monitores com o release atualizado.
+- Reteste manual pendente/recomendado: instalacao interativa por duplo clique e icone no Start Menu.
 
 ## Tag sugerida
 
@@ -36,7 +41,6 @@ git push origin v1.0.3
 
 ## Pendencias fora desta release
 
-- Instalador Windows.
-- Validacao do icone em atalho instalado.
 - Validacao OpenCode Go com assinatura ativa.
-- Empacotamento macOS/Linux.
+- Validacao interativa do icone em atalho instalado.
+- Empacotamento e QA macOS/Linux.
