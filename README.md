@@ -19,9 +19,15 @@ O Claude Code lê um único arquivo ativo em `~/.claude/settings.json`. O Switch
 
 ## Como instalar
 
-### Windows
+### Windows (disponivel)
 
-Baixe o instalador `.exe` na pagina de Releases do GitHub e execute com duplo clique.
+Baixe o instalador `.exe` na pagina de Releases do GitHub e execute com duplo clique:
+
+```text
+switch-provider_1.0.3_x64-setup.exe
+```
+
+Depois de instalar, abra o Switch Provider pelo Menu Iniciar.
 
 Via PowerShell:
 
@@ -29,33 +35,11 @@ Via PowerShell:
 irm https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.ps1 | iex
 ```
 
-Depois que o pacote for aceito no Winget, a instalacao tambem podera ser:
+### Linux e macOS
 
-```powershell
-winget install DanubioLagoa.SwitchProvider
-```
+Linux e macOS ainda estao em validacao. Ha issues separadas para gerar e testar `.deb`/`.AppImage` no Linux e `.app`/`.dmg` no macOS antes de publicar esses downloads como oficiais.
 
-### Linux
-
-Via curl:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.sh | bash
-```
-
-O script tenta instalar `.deb` em distros com `apt`; se nao houver `.deb`, baixa o `.AppImage` para `~/.local/bin/switch-provider`.
-
-### macOS
-
-Via curl:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/danubiolagoa/switch-provider/main/install/install.sh | bash
-```
-
-O script baixa o `.dmg` da ultima release, monta o volume e copia o `.app` para `/Applications`.
-
-Se o download for divulgado no site de um parceiro, a pagina pode apontar para esses mesmos scripts ou para os assets da GitHub Release.
+Winget tambem fica para uma etapa posterior.
 
 ## Como rodar em desenvolvimento
 
