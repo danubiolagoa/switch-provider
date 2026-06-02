@@ -31,3 +31,6 @@ index.html
 # Scripts output (local test files)
 /scripts/*.txt
 .assets/*.zip
+
+# Local marketing/design artifacts
+.docs/youtube-thumbnail*
