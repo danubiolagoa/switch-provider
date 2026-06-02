@@ -21,7 +21,41 @@ impl ConfigStore {
         fs::create_dir_all(&config_dir)
             .await
             .map_err(AppError::ConfigDir)?;
-        Ok(Self { config_dir })
+        let store = Self { config_dir };
+        store.migrate_legacy_settings_files().await?;
+        Ok(store)
+    }
+
+    async fn migrate_legacy_settings_files(&self) -> AppResult<()> {
+        let mut entries = fs::read_dir(&self.config_dir)
+            .await
+            .map_err(AppError::ConfigDir)?;
+
+        while let Some(entry) = entries.next_entry().await.map_err(AppError::ConfigDir)? {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) != Some("json") {
+                continue;
+            }
+
+            let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+                continue;
+            };
+
+            if stem != "settings" && !stem.starts_with("settings-") {
+                continue;
+            }
+
+            let mut settings = match self.read_settings(&path).await {
+                Ok(settings) => settings,
+                Err(_) => continue,
+            };
+
+            if settings.normalize_provider_auth() {
+                self.write_settings(&path, &settings).await?;
+            }
+        }
+
+        Ok(())
     }
 
     /// Get the path to the active settings.json
@@ -96,7 +130,11 @@ impl ConfigStore {
         if !path.exists() {
             return Ok(None);
         }
-        Some(self.read_settings(&path).await).transpose()
+        let mut settings = self.read_settings(&path).await?;
+        if settings.normalize_provider_auth() {
+            self.write_settings(&path, &settings).await?;
+        }
+        Ok(Some(settings))
     }
 
     /// Read settings from a specific path
@@ -181,7 +219,11 @@ impl ConfigStore {
 
         // Read and validate the settings first
         let mut settings = self.read_settings(&provider_path).await?;
-        if settings.normalize_activation_model() {
+        let mut persisted = settings.normalize_activation_model();
+        if settings.normalize_provider_auth() {
+            persisted = true;
+        }
+        if persisted {
             self.write_settings(&provider_path, &settings).await?;
         }
 
@@ -471,6 +513,43 @@ mod tests {
             store.get_current_provider_name().await.unwrap(),
             Some("zen".to_string())
         );
+
+        let _ = fs::remove_dir_all(&dir).await;
+    }
+
+    #[tokio::test]
+    async fn new_with_dir_migrates_legacy_settings_files() {
+        let dir = temp_config_dir("legacy-migration");
+        let _ = fs::remove_dir_all(&dir).await;
+        fs::create_dir_all(&dir).await.unwrap();
+
+        let legacy = r#"{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://opencode.ai/zen/go",
+    "ANTHROPIC_AUTH_TOKEN": "legacy-token",
+    "ANTHROPIC_API_KEY": "",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ANTHROPIC_MODEL": "qwen3.7-max"
+  },
+  "autoUpdatesChannel": "latest"
+}"#;
+
+        fs::write(dir.join("settings.json"), legacy).await.unwrap();
+        fs::write(dir.join("settings-GO.json"), legacy).await.unwrap();
+
+        let store = ConfigStore::new_with_dir(dir.clone()).await.unwrap();
+
+        let active = store.read_settings(&dir.join("settings.json")).await.unwrap();
+        let provider = store
+            .read_settings(&dir.join("settings-GO.json"))
+            .await
+            .unwrap();
+
+        assert_eq!(active.env.api_key.as_deref(), Some("legacy-token"));
+        assert_eq!(provider.env.api_key.as_deref(), Some("legacy-token"));
+        assert_eq!(active.env.auth_token.as_deref(), None);
+        assert_eq!(provider.env.auth_token.as_deref(), None);
 
         let _ = fs::remove_dir_all(&dir).await;
     }

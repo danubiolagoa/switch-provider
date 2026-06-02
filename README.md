@@ -30,7 +30,7 @@ https://github.com/danubiolagoa/switch-provider/releases
 Na release mais recente, abra a area **Assets** e baixe o instalador Windows. Link direto:
 
 ```text
-https://github.com/danubiolagoa/switch-provider/releases/download/v1.0.3/switch-provider_1.0.3_x64-setup.exe
+https://github.com/danubiolagoa/switch-provider/releases/download/v1.0.4/switch-provider_1.0.4_x64-setup.exe
 ```
 
 Depois, execute o `.exe` com duplo clique e abra o Switch Provider pelo Menu Iniciar.

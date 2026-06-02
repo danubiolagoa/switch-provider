@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Corrige autenticacao do OpenCode Go para usar apenas `ANTHROPIC_API_KEY` no formato aceito pelo gateway.
+- Migra automaticamente configuracoes legadas do OpenCode Go ao abrir o app e ao ativar providers salvos.
+- Mantem compatibilidade de troca de modelos e persistencia dos arquivos `settings*.json` apos a correcao.
+
 ## 1.0.3
 
 - Migra o projeto para um aplicativo desktop Rust/Slint.

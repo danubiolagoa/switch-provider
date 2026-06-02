@@ -31,7 +31,7 @@ npx --yes @crabnebula/packager --config Packager.toml --formats nsis
 Artefatos esperados:
 
 ```text
-dist/switch-provider_1.0.3_x64-setup.exe
+dist/switch-provider_1.0.4_x64-setup.exe
 ```
 
 Observacao: `cargo install cargo-packager --locked` tambem e uma opcao valida, mas nesta maquina falhou porque o workload C++/MSVC do Visual Studio esta incompleto e nao possui `vcruntime.h`. O caminho `npx --yes @crabnebula/packager` foi validado e gerou o instalador.

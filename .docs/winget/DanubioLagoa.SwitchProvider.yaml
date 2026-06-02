@@ -1,7 +1,7 @@
 # Draft only. Submit this metadata to microsoft/winget-pkgs after the
 # matching GitHub Release asset is publicly available.
 PackageIdentifier: DanubioLagoa.SwitchProvider
-PackageVersion: 1.0.3
+PackageVersion: 1.0.4
 PackageLocale: pt-BR
 Publisher: Danubio Lagoa
 PackageName: Switch Provider
@@ -11,7 +11,7 @@ PackageUrl: https://github.com/danubiolagoa/switch-provider
 Installers:
   - Architecture: x64
     InstallerType: nullsoft
-    InstallerUrl: https://github.com/danubiolagoa/switch-provider/releases/download/v1.0.3/switch-provider_1.0.3_x64-setup.exe
-    InstallerSha256: 8F4AD458338350DEE8815D3261517ECE99F74A3138D0E14520A35CA9C4481CD0
+    InstallerUrl: https://github.com/danubiolagoa/switch-provider/releases/download/v1.0.4/switch-provider_1.0.4_x64-setup.exe
+    InstallerSha256: 1628635936E14D386FF0622F8D4561893C884762EC05521C090504E20EFFECB1
 ManifestType: singleton
 ManifestVersion: 1.12.0

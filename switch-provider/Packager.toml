@@ -1,7 +1,7 @@
 name = "switch-provider"
 product-name = "Switch Provider"
 identifier = "com.danubiolagoa.switch-provider"
-version = "1.0.3"
+version = "1.0.4"
 authors = ["Danubio Lagoa"]
 publisher = "Danubio Lagoa"
 homepage = "https://github.com/danubiolagoa/switch-provider"

@@ -13,7 +13,7 @@ pub struct Settings {
 impl Settings {
     /// Create settings for a provider with base URL
     pub fn with_base_url(base_url: String, auth_token: String, model: String) -> Self {
-        Settings {
+        let mut settings = Settings {
             env: SettingsEnv {
                 base_url: Some(base_url),
                 auth_token: Some(auth_token),
@@ -27,7 +27,9 @@ impl Settings {
                 haiku_model: Some(model),
             },
             auto_updates_channel: "latest".to_string(),
-        }
+        };
+        settings.normalize_provider_auth();
+        settings
     }
 
     /// Create settings for native Anthropic (API key only)
@@ -125,6 +127,50 @@ impl Settings {
         }
 
         changed
+    }
+
+    /// Align auth fields with provider expectations.
+    /// Returns true if the settings were modified.
+    pub fn normalize_provider_auth(&mut self) -> bool {
+        match self.provider_type() {
+            Some(ProviderType::OpenCodeGo) => {
+                let token = self
+                    .env
+                    .api_key
+                    .as_deref()
+                    .filter(|key| !key.is_empty())
+                    .map(str::to_string)
+                    .or_else(|| {
+                        self.env
+                            .auth_token
+                            .as_deref()
+                            .filter(|token| !token.is_empty())
+                            .map(str::to_string)
+                    });
+
+                let mut changed = false;
+                if let Some(token) = token {
+                    if self.env.api_key.as_deref() != Some(token.as_str()) {
+                        self.env.api_key = Some(token.clone());
+                        changed = true;
+                    }
+                }
+
+                if self
+                    .env
+                    .auth_token
+                    .as_deref()
+                    .map(|token| !token.is_empty())
+                    .unwrap_or(false)
+                {
+                    self.env.auth_token = None;
+                    changed = true;
+                }
+
+                changed
+            }
+            _ => false,
+        }
     }
 }
 
@@ -284,6 +330,53 @@ mod tests {
         );
         assert_eq!(settings.env.model, Some("MiniMax-M2.7".to_string()));
         assert!(!settings.is_native());
+    }
+
+    #[test]
+    fn test_with_base_url_populates_go_api_key_only() {
+        let settings = Settings::with_base_url(
+            "https://opencode.ai/zen/go".to_string(),
+            "my-secret-key".to_string(),
+            "qwen3.7-max".to_string(),
+        );
+        assert_eq!(settings.env.auth_token.as_deref(), None);
+        assert_eq!(settings.env.api_key.as_deref(), Some("my-secret-key"));
+    }
+
+    #[test]
+    fn test_normalize_provider_auth_for_opencode_go() {
+        let mut settings = Settings {
+            env: SettingsEnv {
+                base_url: Some("https://opencode.ai/zen/go".to_string()),
+                auth_token: Some("legacy-token".to_string()),
+                api_key: Some(String::new()),
+                ..Default::default()
+            },
+            auto_updates_channel: "latest".to_string(),
+        };
+
+        assert!(settings.normalize_provider_auth());
+        assert_eq!(settings.env.api_key.as_deref(), Some("legacy-token"));
+        assert_eq!(settings.env.auth_token.as_deref(), None);
+
+        assert!(!settings.normalize_provider_auth());
+    }
+
+    #[test]
+    fn test_normalize_provider_auth_keeps_existing_go_api_key() {
+        let mut settings = Settings {
+            env: SettingsEnv {
+                base_url: Some("https://opencode.ai/zen/go".to_string()),
+                auth_token: Some("token-a".to_string()),
+                api_key: Some("token-b".to_string()),
+                ..Default::default()
+            },
+            auto_updates_channel: "latest".to_string(),
+        };
+
+        assert!(settings.normalize_provider_auth());
+        assert_eq!(settings.env.api_key.as_deref(), Some("token-b"));
+        assert_eq!(settings.env.auth_token.as_deref(), None);
     }
 
     #[test]

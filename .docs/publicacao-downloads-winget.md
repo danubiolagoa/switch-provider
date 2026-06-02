@@ -41,14 +41,14 @@ Fluxo:
 2. Calcular SHA256 do instalador:
 
 ```powershell
-winget hash .\dist\switch-provider_1.0.3_x64-setup.exe
+winget hash .\dist\switch-provider_1.0.4_x64-setup.exe
 ```
 
 3. Criar manifest com `wingetcreate`:
 
 ```powershell
 winget install wingetcreate
-wingetcreate new https://github.com/danubiolagoa/switch-provider/releases/latest/download/switch-provider_1.0.3_x64-setup.exe
+wingetcreate new https://github.com/danubiolagoa/switch-provider/releases/latest/download/switch-provider_1.0.4_x64-setup.exe
 ```
 
 4. Usar os metadados:
