@@ -41,7 +41,6 @@ fn provider_type_from_index(index: i32) -> Option<config::ProviderType> {
         7 => Some(config::ProviderType::Custom),
         8 => Some(config::ProviderType::OpenCodeZen),
         9 => Some(config::ProviderType::OpenCodeGo),
-        10 => Some(config::ProviderType::MaritacaAI),
         _ => None,
     }
 }
