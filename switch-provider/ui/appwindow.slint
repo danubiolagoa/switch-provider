@@ -207,9 +207,6 @@ export component AppWindow inherits Window {
                 Row {
                     Button { text: "OpenCode Zen"; height: 34px; clicked => { root.selected-endpoint = 8; root.add-step = 2; root.available-models = []; root.filtered-models = []; root.model-filter = ""; root.new-model-name = ""; } }
                     Button { text: "OpenCode Go"; height: 34px; clicked => { root.selected-endpoint = 9; root.add-step = 2; root.available-models = []; root.filtered-models = []; root.model-filter = ""; root.new-model-name = ""; } }
-                    Button { text: "Maritaca AI"; height: 34px; clicked => { root.selected-endpoint = 10; root.add-step = 2; } }
-                }
-                Row {
                     Button { text: "Custom"; height: 34px; clicked => { root.selected-endpoint = 7; root.add-step = 2; } }
                 }
             }
@@ -323,15 +320,14 @@ export component AppWindow inherits Window {
             spacing: 14px;
             Text { text: "Confirmar Provider"; font-size: 24px; font-weight: 800; color: #ffffff; }
             Rectangle {
-                height: 134px;
+                height: 118px;
                 background: #2d2d2d;
                 border-radius: 8px;
                 VerticalBox {
                     padding: 12px;
                     spacing: 4px;
                     Text { text: "Nome: " + root.new-provider-name; font-size: 17px; font-weight: 600; color: #ffffff; overflow: elide; }
-                    Text { text: "Tipo: " + (root.selected-endpoint == 1 ? "MiniMax" : root.selected-endpoint == 2 ? "OpenRouter" : root.selected-endpoint == 3 ? "Anthropic" : root.selected-endpoint == 4 ? "Z.AI" : root.selected-endpoint == 5 ? "Google AI" : root.selected-endpoint == 6 ? "OpenAI" : root.selected-endpoint == 8 ? "OpenCode Zen" : root.selected-endpoint == 9 ? "OpenCode Go" : root.selected-endpoint == 10 ? "Maritaca AI" : "Custom"); font-size: 15px; color: #6699ff; }
-                    if root.selected-endpoint == 10: Text { text: "Modelo padrao: sabia-4"; font-size: 13px; color: #aaaaaa; overflow: elide; }
+                    Text { text: "Tipo: " + (root.selected-endpoint == 1 ? "MiniMax" : root.selected-endpoint == 2 ? "OpenRouter" : root.selected-endpoint == 3 ? "Anthropic" : root.selected-endpoint == 4 ? "Z.AI" : root.selected-endpoint == 5 ? "Google AI" : root.selected-endpoint == 6 ? "OpenAI" : root.selected-endpoint == 8 ? "OpenCode Zen" : root.selected-endpoint == 9 ? "OpenCode Go" : "Custom"); font-size: 15px; color: #6699ff; }
                     if root.selected-endpoint == 2 || root.selected-endpoint == 8 || root.selected-endpoint == 9: Text { text: "Modelo: " + root.new-model-name; font-size: 13px; color: #aaaaaa; overflow: elide; }
                     Text { text: "API Key: [oculta]"; font-size: 13px; color: #888888; }
                 }
