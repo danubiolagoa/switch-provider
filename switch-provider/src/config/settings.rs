@@ -100,6 +100,9 @@ impl Settings {
         if base_url.contains("openai.com") {
             return Some(ProviderType::OpenAI);
         }
+        if base_url.contains("maritaca.ai") {
+            return Some(ProviderType::MaritacaAI);
+        }
 
         Some(ProviderType::Custom)
     }
@@ -228,6 +231,7 @@ pub enum ProviderType {
     ZAI,
     GoogleAI,
     OpenAI,
+    MaritacaAI,
     Custom,
 }
 
@@ -243,6 +247,7 @@ impl ProviderType {
             ProviderType::ZAI => Some("https://api.z.ai/api/anthropic"),
             ProviderType::GoogleAI => Some("https://generativelanguage.googleapis.com"),
             ProviderType::OpenAI => Some("https://api.openai.com/v1"),
+            ProviderType::MaritacaAI => Some("https://chat.maritaca.ai/api"),
             ProviderType::Custom => None,
         }
     }
@@ -258,6 +263,7 @@ impl ProviderType {
             ProviderType::ZAI => Some("GLM-4.7"),
             ProviderType::GoogleAI => Some("gemini-2.0-flash"),
             ProviderType::OpenAI => Some("gpt-4o-mini"),
+            ProviderType::MaritacaAI => Some("sabia-4"),
             ProviderType::Custom => None,
         }
     }
@@ -291,6 +297,7 @@ impl ProviderType {
             ProviderType::ZAI => "Z.AI",
             ProviderType::GoogleAI => "Google AI",
             ProviderType::OpenAI => "OpenAI",
+            ProviderType::MaritacaAI => "Maritaca AI",
             ProviderType::Custom => "Custom",
         }
     }
@@ -394,6 +401,7 @@ mod tests {
         assert!(ProviderType::OpenCodeGo.needs_model_selection());
         assert!(!ProviderType::Anthropic.needs_model_selection());
         assert!(!ProviderType::GoogleAI.needs_model_selection());
+        assert!(!ProviderType::MaritacaAI.needs_model_selection());
     }
 
     #[test]
@@ -421,5 +429,35 @@ mod tests {
         assert!(settings.normalize_activation_model());
         assert_eq!(settings.model(), Some("MiniMax-M2.7"));
         assert_eq!(settings.env.sonnet_model.as_deref(), Some("MiniMax-M2.7"));
+    }
+
+    #[test]
+    fn test_maritaca_settings() {
+        let settings = Settings::with_base_url(
+            "https://chat.maritaca.ai/api".to_string(),
+            "my-maritaca-key".to_string(),
+            "sabia-4".to_string(),
+        );
+        assert_eq!(settings.env.base_url, Some("https://chat.maritaca.ai/api".to_string()));
+        assert_eq!(settings.env.model, Some("sabia-4".to_string()));
+        assert_eq!(settings.provider_type(), Some(ProviderType::MaritacaAI));
+    }
+
+    #[test]
+    fn test_maritaca_default_model() {
+        assert_eq!(ProviderType::MaritacaAI.default_model(), Some("sabia-4"));
+    }
+
+    #[test]
+    fn test_maritaca_endpoint() {
+        assert_eq!(
+            ProviderType::MaritacaAI.endpoint(),
+            Some("https://chat.maritaca.ai/api")
+        );
+    }
+
+    #[test]
+    fn test_maritaca_display_name() {
+        assert_eq!(ProviderType::MaritacaAI.display_name(), "Maritaca AI");
     }
 }
